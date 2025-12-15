@@ -3,10 +3,31 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-DATA_FILE = Path("task.json")
+BASE_DIR = Path(__file__).resolve().parent
+DATA_FILE = BASE_DIR / "tasks.json"
+
 def load_data():
     if not DATA_FILE.exists():
-        return {} 
+        return {"meta": {"last_id": 0}, "tasks": []}
+    with open(DATA_FILE, "r") as f:
+        return json.load(f)
+
+
+def save_data(data):
+    with open (DATA_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+def add_task(task: dict):
+    data = load_data()
+    
+    data["meta"]["last_id"] += 1
+    task["id"] = data["meta"]["last_id"]
+
+    data["tasks"].append(task)
+    save_data(data)
+
+    return task
+
 
 def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -32,7 +53,11 @@ def handle_add(args):
         "completed_at": None,
         "due": due_date.strftime("%Y-%m-%d %H:%M") if due_date else None
     }
-    print(task)
+
+    saved = add_task(task)
+    print(f"Task added with ID {saved['id']}")
+
+
 
 parser = argparse.ArgumentParser("to-do app")
 subparser = parser.add_subparsers(dest="command")
@@ -47,6 +72,10 @@ add.add_argument(
     type=int,
     help="Task priority (1=Critical, 2=High, 3=Normal, 4=Low)"
     )
+
+
+list_ = subparser.add_parser("list", help="list current to-do and in-progress.")
+
 args = parser.parse_args()
 
 if args.command == "add":
