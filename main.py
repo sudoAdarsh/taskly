@@ -26,16 +26,54 @@ def add_task(task: dict):
 
     data["tasks"].append(task)
     save_data(data)
-
     return task
+
+def start_task(id_: int):
+    data = load_data()
+    tasks = data["tasks"]
+    for task in tasks:
+        if task["id"] == id_:
+            if task["status"] == "todo":
+                task["started_at"] = now()
+                task["status"] = "in_progress"
+                save_data(data)
+                print(f"Task {id_}. {task["description"]} is now in progress.")
+                return 
+            elif task["status"] == "in_progress":
+                raise Exception(f"Task {id_}. {task["description"]} is already in progress.")
+            elif task["status"] == "done":
+                raise Exception(f"Task {id_}. {task["description"]} is completed.")
+    raise IndexError(f"No task with id {id_}")
+
+def done_task(id_: int):
+    data = load_data()
+    tasks = data["tasks"]
+    for task in tasks:
+        if task["id"] == id_:
+            if task["status"] != "done":
+                task["completed_at"] = now()
+                task["status"] = "done"
+                save_data(data)
+                print(f"Task {id_}. {task["description"]} is now completed.")
+                return
+            elif task["status"] == "done":
+                raise Exception(f"Task {id_}. {task["description"]} is already completed.")
+    raise IndexError(f"No task with id {id_}")
 
 
 def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 def sort_key(task):
+    status_values = {
+        "in_progress": 1,
+        "todo": 2,
+        "done": 3
+    }
+    status = status_values[task["status"]]
     due = (datetime.strptime(task["due"], "%Y-%m-%d %H:%M") if task["due"] else datetime.max)
-    return (task["priority"], due)
+    priority = task["priority"]
+    return (status, priority, due)
 
 def display_tasks(tasks):
     rows = [
@@ -79,7 +117,6 @@ def handle_add(args):
         "completed_at": None,
         "due": due_date.strftime("%Y-%m-%d %H:%M") if due_date else None
     }
-
     saved = add_task(task)
     print(f"Task added with ID {saved['id']}")
 
@@ -90,9 +127,16 @@ def list_tasks():
     active_tasks.sort(key=sort_key)
     display_tasks(active_tasks)
 
+def sort_key_by_priority(task):
+    priority = task["priority"]
+    return (priority)
+
 def list_task_by_priority():
     data = load_data()
-    
+    tasks = data["tasks"]
+    active_tasks = [task for task in tasks if task["status"] in ("todo", "in_progress")]
+    active_tasks.sort(key=sort_key_by_priority)
+    display_tasks(active_tasks)
 
 
 
@@ -114,6 +158,13 @@ add.add_argument(
 list_ = subparser.add_parser("list", help="list current to-do and in-progress.")
 list_.add_argument("--priority", action="store_true", help="list in order of priority")
 
+
+start = subparser.add_parser("start", help="changes status from todo to in_progress")
+start.add_argument("id", help="mention id of task to start", type=int)
+
+done = subparser.add_parser("done", help="changes status to done")
+done.add_argument("id", help="mention id of task to mark done", type=int)
+
 args = parser.parse_args()
 
 if args.command == "add":
@@ -126,3 +177,13 @@ elif args.command == "list":
         list_task_by_priority()
     else:
         list_tasks()
+elif args.command == "start":
+    try:
+        start_task(args.id)
+    except Exception as e:
+        parser.error(str(e))
+elif args.command == "done":
+    try:
+        done_task(args.id)
+    except Exception as e:
+        parser.error(str(e))
