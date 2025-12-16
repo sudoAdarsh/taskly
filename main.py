@@ -1,6 +1,7 @@
 import json
 import argparse
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 from pathlib import Path
 from tabulate import tabulate
 
@@ -182,16 +183,48 @@ def display_tasks(tasks, view="default"):
         )
     )
 
-def parse_due_date(date_str: str):
+
+def parse_due_date(value: str | None):
+    now_dt = datetime.now()
+    # 1️⃣ No value → default +1 day
+    if value is None:
+        return now_dt + timedelta(days=1)
+    value = value.strip().lower()
+    # 2️⃣ Pure number → days from now
+    if value.isdigit():
+        return now_dt + timedelta(days=int(value))
+    # 3️⃣ Relative format: 3d, 2w, 5h
+    match = re.fullmatch(r"(\d+)([dhw])", value)
+    if match:
+        amount, unit = match.groups()
+        amount = int(amount)
+        if unit == "h":
+            return now_dt + timedelta(hours=amount)
+        if unit == "d":
+            return now_dt + timedelta(days=amount)
+        if unit == "w":
+            return now_dt + timedelta(weeks=amount)
+    # 4️⃣ Date only: YYYY-MM-DD → assume end of day
     try:
-        return datetime.strptime(date_str, "%Y-%m-%d %H:%M")
+        date_only = datetime.strptime(value, "%Y-%m-%d")
+        return date_only.replace(hour=23, minute=59)
     except ValueError:
-        raise ValueError("Invalid date format. Use YYYY-MM-DD HH:MM (e.g. 2025-01-15 13:20)")
+        pass
+    # 5️⃣ Full datetime (existing strict format)
+    try:
+        return datetime.strptime(value, "%Y-%m-%d %H:%M")
+    except ValueError:
+        raise ValueError(
+            "Invalid due format.\n"
+            "Use one of:\n"
+            "  3            (days from now)\n"
+            "  2d / 1w      (relative)\n"
+            "  YYYY-MM-DD\n"
+            "  YYYY-MM-DD HH:MM"
+        )
 
 def handle_add(args):
-    due_date = None
-    if args.due:
-        due_date = parse_due_date(args.due)
+    due_date = parse_due_date(args.due)
     
     task = {
         "id": None,
@@ -201,7 +234,7 @@ def handle_add(args):
         "created_at": now(),
         "started_at": None,
         "completed_at": None,
-        "due": due_date.strftime("%Y-%m-%d %H:%M") if due_date else None,
+        "due": due_date.strftime("%Y-%m-%d %H:%M"),
         "deleted_at": None
     }
     saved = add_task(task)
@@ -262,12 +295,19 @@ def list_task_by_priority():
 
 
 
-parser = argparse.ArgumentParser("tTaskly")
+parser = argparse.ArgumentParser("Taskly")
 subparser = parser.add_subparsers(dest="command")
 
 add = subparser.add_parser("add", help="Add's a new task")
 add.add_argument("description", help="Task description")
-add.add_argument("--due", help="Setup a due date for the task")
+add.add_argument(
+    "--due",
+    help=(
+        "Due date: "
+        "N (days), Nd/Nw, YYYY-MM-DD, or YYYY-MM-DD HH:MM "
+        "(default: +1 day)"
+    )
+)
 add.add_argument(
     "--priority",
     choices=range(1,5),
