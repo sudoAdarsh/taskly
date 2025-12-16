@@ -32,6 +32,17 @@ COLUMNS = {
         ("Created at", "created_at"),
         ("Started at", "started_at"),
         ("Completed at", "completed_at"),
+    ],
+    "del": [
+        ("ID", "id"),
+        ("Description", "description"),
+        ("Status", "status"),
+        ("Priority", "priority"),
+        ("Due", "due"),
+        ("Created at", "created_at"),
+        ("Started at", "started_at"),
+        ("Completed at", "completed_at"),
+        ("Deleted at", "deleted_at"),
     ]
 }
 
@@ -68,7 +79,7 @@ def start_task(id_: int):
     data = load_data()
     tasks = data["tasks"]
     task = get_task_by_id(tasks, id_)
-    if not task:
+    if not task or task["status"] == "deleted":
         raise IndexError(f"No task with id {id_}")
     if task["status"] == "todo":
         task["started_at"] = now()
@@ -85,7 +96,7 @@ def done_task(id_: int):
     data = load_data()
     tasks = data["tasks"]
     task = get_task_by_id(tasks, id_)
-    if not task:
+    if not task or task["status"] == "deleted":
         raise IndexError(f"No task with id {id_}")
     if task["status"] != "done":
         task["completed_at"] = now()
@@ -100,18 +111,41 @@ def update_task(id_: int, description=None, due=None, priority=None):
     data = load_data()
     tasks = data["tasks"]
     task = get_task_by_id(tasks, id_)
-    if not task:
+    if not task or task["status"] == "deleted":
         raise IndexError(f"No task with id {id_}")
     if description is None and due is None and priority is None:
         raise ValueError("Nothing to update")
+    changes = []
     if description is not None:
         task["description"] = description
+        changes.append(f"Description: {description}")
     if due is not None:
-        task["due"] = due
+        task["due"] = parse_due_date(due).strftime("%Y-%m-%d %H:%M")
+        changes.append(f"Due: {due}")
     if priority is not None:
         task["priority"] = priority
-    print(f"Succesfully updated Task {id_}")
+        changes.append(f"Priority: {priority}")
+    print(f"Successfully updated Task {id_}: \n{', '.join(changes)}")
     save_data(data)
+
+def delete_task(id_: int):
+    data = load_data()
+    tasks = data["tasks"]
+    task = get_task_by_id(tasks, id_)
+    if not task:
+        raise IndexError(f"No task with id {id_}")
+    confirm = input(f"Delete Task {id_}? [y/N]: ")
+    if confirm.lower() != "y":
+        print("Cancelled")
+        return
+    if task["status"] == "deleted":
+        raise ValueError(f"Task {id_}. {task["description"]} already deleted.")
+    else:
+        task["deleted_at"] = now()
+        task["status"] = "deleted"
+        save_data(data)
+        print(f"Task {id_}. {task["description"]} is now deleted.")
+        return
 
 def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -120,7 +154,8 @@ def sort_key(task):
     status_values = {
         "in_progress": 1,
         "todo": 2,
-        "done": 3
+        "done": 3,
+        "deleted": 4
     }
     status = status_values[task["status"]]
     due = (datetime.strptime(task["due"], "%Y-%m-%d %H:%M") if task["due"] else datetime.max)
@@ -143,7 +178,7 @@ def display_tasks(tasks, view="default"):
         tabulate(
             rows,
             headers=headers,
-            tablefmt="github"
+            tablefmt="pretty"
         )
     )
 
@@ -166,7 +201,8 @@ def handle_add(args):
         "created_at": now(),
         "started_at": None,
         "completed_at": None,
-        "due": due_date.strftime("%Y-%m-%d %H:%M") if due_date else None
+        "due": due_date.strftime("%Y-%m-%d %H:%M") if due_date else None,
+        "deleted_at": None
     }
     saved = add_task(task)
     print(f"Task added with ID {saved['id']}")
@@ -181,8 +217,9 @@ def list_tasks():
 def list_all_tasks():
     data = load_data()
     tasks = data["tasks"]
-    tasks.sort(key=sort_key)
-    display_tasks(tasks, view="all")
+    all_tasks = [task for task in tasks if task["status"] != "deleted"]
+    all_tasks.sort(key=sort_key)
+    display_tasks(all_tasks, view="all")
 
 def list_todo_tasks():
     data = load_data()
@@ -205,6 +242,13 @@ def list_done_tasks():
     done_tasks.sort(key=sort_key)
     display_tasks(done_tasks, view="all")
 
+def list_deleted_tasks():
+    data = load_data()
+    tasks = data["tasks"]
+    deleted_tasks = [task for task in tasks if task["status"] == "deleted"]
+    deleted_tasks.sort(key=sort_key)
+    display_tasks(deleted_tasks, view="del")
+
 def sort_key_by_priority(task):
     priority = task["priority"]
     return (priority)
@@ -218,7 +262,7 @@ def list_task_by_priority():
 
 
 
-parser = argparse.ArgumentParser("to-do app")
+parser = argparse.ArgumentParser("tTaskly")
 subparser = parser.add_subparsers(dest="command")
 
 add = subparser.add_parser("add", help="Add's a new task")
@@ -244,12 +288,16 @@ update.add_argument(
     help="Task priority (1=Critical, 2=High, 3=Normal, 4=Low)"
     )
 
+delete = subparser.add_parser("delete", help="delete task")
+delete.add_argument("id", type=int, help="Id of task to be deleted")
+
 list_ = subparser.add_parser("list", help="list current to-do and in-progress.")
 list_.add_argument("-p", "--priority", action="store_true", help="list in order of priority")
 list_.add_argument("-a", "--all", action="store_true", help="list all tasks")
 list_.add_argument("-d", "--done", action="store_true", help="list completed tasks")
 list_.add_argument("-c", "--active", action="store_true", help="list active tasks")
 list_.add_argument("-t", "--todo", action="store_true", help="list remaing todo's")
+list_.add_argument("-q", "--deleted", action="store_true", help="list deleted tasks")
 
 
 start = subparser.add_parser("start", help="changes status from todo to in_progress")
@@ -259,6 +307,9 @@ done = subparser.add_parser("done", help="changes status to done")
 done.add_argument("id", help="mention id of task to mark done", type=int)
 
 args = parser.parse_args()
+
+if args.command is None:
+    list_tasks()
 
 if args.command == "add":
     try:
@@ -276,6 +327,8 @@ elif args.command == "list":
         list_active_tasks()
     elif args.todo:
         list_todo_tasks()
+    elif args.deleted:
+        list_deleted_tasks()
     else:
         list_tasks()
 elif args.command == "start":
@@ -291,5 +344,10 @@ elif args.command == "done":
 elif args.command == "update":
     try:
         update_task(id_=args.id, description=args.description, due=args.due, priority=args.priority)
+    except Exception as e:
+        parser.error(str(e))
+elif args.command == "delete":
+    try:
+        delete_task(id_=args.id)
     except Exception as e:
         parser.error(str(e))
