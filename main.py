@@ -7,6 +7,35 @@ from tabulate import tabulate
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "tasks.json"
 
+COLUMNS = {
+    "default": [
+        ("ID", "id"),
+        ("Description", "description"),
+        ("Status", "status"),
+        ("Priority", "priority"),
+        ("Due", "due"),
+    ],
+    "active": [
+        ("ID", "id"),
+        ("Description", "description"),
+        ("Status", "status"),
+        ("Priority", "priority"),
+        ("Due", "due"),
+        ("Started at", "started_at"),
+    ],
+    "all": [
+        ("ID", "id"),
+        ("Description", "description"),
+        ("Status", "status"),
+        ("Priority", "priority"),
+        ("Due", "due"),
+        ("Created at", "created_at"),
+        ("Started at", "started_at"),
+        ("Completed at", "completed_at"),
+    ]
+}
+
+
 def load_data():
     if not DATA_FILE.exists():
         return {"meta": {"last_id": 0}, "tasks": []}
@@ -17,6 +46,8 @@ def load_data():
 def save_data(data):
     with open (DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
+
+
 
 def add_task(task: dict):
     data = load_data()
@@ -75,23 +106,22 @@ def sort_key(task):
     priority = task["priority"]
     return (status, priority, due)
 
-def display_tasks(tasks):
-    rows = [
-        [
-            t["id"],
-            t["description"],
-            t["status"],
-            t["priority"],
-            t["due"] or "-",
-            t["created_at"],
-            t["started_at"] or "-"
-        ]
-        for t in tasks
-    ]
+def display_tasks(tasks, view="default"):
+    columns = COLUMNS[view]
+
+    headers = [label_title for label_title, label in columns]
+    rows = []
+
+    for task in tasks:
+        row = []
+        for _, key in columns:
+            value = task.get(key)
+            row.append(value if value is not None else "-")
+        rows.append(row)
     print(
         tabulate(
             rows,
-            headers=["ID", "Description", "Status", "Priority", "Due", "Created at", "Started at"],
+            headers=headers,
             tablefmt="github"
         )
     )
@@ -123,9 +153,36 @@ def handle_add(args):
 def list_tasks():
     data = load_data()
     tasks = data["tasks"]
-    active_tasks = [task for task in tasks if task["status"] in ("todo", "in_progress")]
+    current_tasks = [task for task in tasks if task["status"] in ("todo", "in_progress")]
+    current_tasks.sort(key=sort_key)
+    display_tasks(current_tasks)
+
+def list_all_tasks():
+    data = load_data()
+    tasks = data["tasks"]
+    tasks.sort(key=sort_key)
+    display_tasks(tasks, view="all")
+
+def list_todo_tasks():
+    data = load_data()
+    tasks = data["tasks"]
+    todo_tasks = [task for task in tasks if task["status"] == "todo"]
+    todo_tasks.sort(key=sort_key)
+    display_tasks(todo_tasks)
+
+def list_active_tasks():
+    data = load_data()
+    tasks = data["tasks"]
+    active_tasks = [task for task in tasks if task["status"] == "in_progress"]
     active_tasks.sort(key=sort_key)
-    display_tasks(active_tasks)
+    display_tasks(active_tasks, view="active")
+
+def list_done_tasks():
+    data = load_data()
+    tasks = data["tasks"]
+    done_tasks = [task for task in tasks if task["status"] == "done"]
+    done_tasks.sort(key=sort_key)
+    display_tasks(done_tasks, view="all")
 
 def sort_key_by_priority(task):
     priority = task["priority"]
@@ -134,9 +191,9 @@ def sort_key_by_priority(task):
 def list_task_by_priority():
     data = load_data()
     tasks = data["tasks"]
-    active_tasks = [task for task in tasks if task["status"] in ("todo", "in_progress")]
-    active_tasks.sort(key=sort_key_by_priority)
-    display_tasks(active_tasks)
+    tasks_by_priority = [task for task in tasks if task["status"] in ("todo", "in_progress")]
+    tasks_by_priority.sort(key=sort_key_by_priority)
+    display_tasks(tasks_by_priority)
 
 
 
@@ -156,7 +213,11 @@ add.add_argument(
 
 
 list_ = subparser.add_parser("list", help="list current to-do and in-progress.")
-list_.add_argument("--priority", action="store_true", help="list in order of priority")
+list_.add_argument("-p", "--priority", action="store_true", help="list in order of priority")
+list_.add_argument("-a", "--all", action="store_true", help="list all tasks")
+list_.add_argument("-d", "--done", action="store_true", help="list completed tasks")
+list_.add_argument("-c", "--active", action="store_true", help="list active tasks")
+list_.add_argument("-t", "--todo", action="store_true", help="list remaing todo's")
 
 
 start = subparser.add_parser("start", help="changes status from todo to in_progress")
@@ -175,6 +236,14 @@ if args.command == "add":
 elif args.command == "list":
     if args.priority:
         list_task_by_priority()
+    elif args.all:
+        list_all_tasks()
+    elif args.done:
+        list_done_tasks()
+    elif args.active:
+        list_active_tasks()
+    elif args.todo:
+        list_todo_tasks()
     else:
         list_tasks()
 elif args.command == "start":
