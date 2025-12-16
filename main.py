@@ -48,7 +48,6 @@ def save_data(data):
         json.dump(data, f, indent=2)
 
 
-
 def add_task(task: dict):
     data = load_data()
     
@@ -59,38 +58,60 @@ def add_task(task: dict):
     save_data(data)
     return task
 
+def get_task_by_id(tasks, id_):
+    for task in tasks:
+        if task["id"] == id_:
+            return task
+    return None
+
 def start_task(id_: int):
     data = load_data()
     tasks = data["tasks"]
-    for task in tasks:
-        if task["id"] == id_:
-            if task["status"] == "todo":
-                task["started_at"] = now()
-                task["status"] = "in_progress"
-                save_data(data)
-                print(f"Task {id_}. {task["description"]} is now in progress.")
-                return 
-            elif task["status"] == "in_progress":
-                raise Exception(f"Task {id_}. {task["description"]} is already in progress.")
-            elif task["status"] == "done":
-                raise Exception(f"Task {id_}. {task["description"]} is completed.")
-    raise IndexError(f"No task with id {id_}")
+    task = get_task_by_id(tasks, id_)
+    if not task:
+        raise IndexError(f"No task with id {id_}")
+    if task["status"] == "todo":
+        task["started_at"] = now()
+        task["status"] = "in_progress"
+        save_data(data)
+        print(f"Task {id_}. {task["description"]} is now in progress.")
+        return 
+    elif task["status"] == "in_progress":
+        raise Exception(f"Task {id_}. {task["description"]} is already in progress.")
+    elif task["status"] == "done":
+        raise Exception(f"Task {id_}. {task["description"]} is completed.")
 
 def done_task(id_: int):
     data = load_data()
     tasks = data["tasks"]
-    for task in tasks:
-        if task["id"] == id_:
-            if task["status"] != "done":
-                task["completed_at"] = now()
-                task["status"] = "done"
-                save_data(data)
-                print(f"Task {id_}. {task["description"]} is now completed.")
-                return
-            elif task["status"] == "done":
-                raise Exception(f"Task {id_}. {task["description"]} is already completed.")
-    raise IndexError(f"No task with id {id_}")
+    task = get_task_by_id(tasks, id_)
+    if not task:
+        raise IndexError(f"No task with id {id_}")
+    if task["status"] != "done":
+        task["completed_at"] = now()
+        task["status"] = "done"
+        save_data(data)
+        print(f"Task {id_}. {task["description"]} is now completed.")
+        return
+    elif task["status"] == "done":
+        raise Exception(f"Task {id_}. {task["description"]} is already completed.")
 
+def update_task(id_: int, description=None, due=None, priority=None):
+    data = load_data()
+    tasks = data["tasks"]
+    task = get_task_by_id(tasks, id_)
+    if not task:
+        raise IndexError(f"No task with id {id_}")
+    if description is None and due is None and priority is None:
+        raise ValueError("Nothing to update")
+    if description is not None:
+        task["description"] = description
+    if due is not None:
+        task["due"] = due
+    if priority is not None:
+        task["priority"] = priority
+    print(f"Succesfully updated Task {id_}")
+    save_data(data)
 
 def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -211,6 +232,17 @@ add.add_argument(
     help="Task priority (1=Critical, 2=High, 3=Normal, 4=Low)"
     )
 
+update = subparser.add_parser("update", help="Update task fields")
+update.add_argument("id", type=int, help="Id of task to be updated")
+update.add_argument("--description", help="Task description")
+update.add_argument("--due", help="Setup a due date for the task")
+update.add_argument(
+    "--priority",
+    choices=range(1,5),
+    default=None,
+    type=int,
+    help="Task priority (1=Critical, 2=High, 3=Normal, 4=Low)"
+    )
 
 list_ = subparser.add_parser("list", help="list current to-do and in-progress.")
 list_.add_argument("-p", "--priority", action="store_true", help="list in order of priority")
@@ -254,5 +286,10 @@ elif args.command == "start":
 elif args.command == "done":
     try:
         done_task(args.id)
+    except Exception as e:
+        parser.error(str(e))
+elif args.command == "update":
+    try:
+        update_task(id_=args.id, description=args.description, due=args.due, priority=args.priority)
     except Exception as e:
         parser.error(str(e))
