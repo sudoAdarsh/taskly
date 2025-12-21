@@ -35,8 +35,7 @@ add.add_argument(
 args = parser.parse_args()
 
 if args.command == "add":
-    dt.add_task(args)
-    # try:
-    #     dt.add_task(args)
-    # except Exception as e:
-    #     parser.error(str(e))
+    try:
+        dt.add_task(args)
+    except Exception as e:
+        parser.error(str(e))

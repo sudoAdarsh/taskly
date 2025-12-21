@@ -24,7 +24,8 @@ class Data:
         conection.commit()
         conection.close()
     def add_task(self, args):
-        due_date = parse_due_date(args.due).strftime("%d-%m-%Y")
+        print(parse_due_date(args.due))
+        due_date = parse_due_date(args.due).strftime("%d-%m-%Y %H:%M")
         created_at = datetime.now().strftime("%d-%m-%Y")
         conn = sqlite3.connect(DATA_FILE)
         cursor = conn.cursor()
@@ -32,7 +33,6 @@ class Data:
         cursor.execute(query, (args.description, args.priority, created_at, due_date))
         new_id = cursor.lastrowid
         a = cursor.execute("SELECT * FROM tasks")
-        print(a.fetchall())
         conn.commit()
         conn.close()
         return new_id

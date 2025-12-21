@@ -26,4 +26,4 @@ def parse_due_date(date: str):
         date_only = datetime.strptime(date, "%d-%m-%Y")
         return date_only
     except ValueError:
-        print("Error")
+        raise ValueError("\nDue date: N (days), Nd/Nw, YYYY-MM-DD or (default: +1 day)")
