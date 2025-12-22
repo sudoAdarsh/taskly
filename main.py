@@ -6,9 +6,11 @@
 
 # TODO manage displaying , listing task
 
-
 import argparse
+from list_tasks import List
 from data import Data
+
+li = List()
 dt = Data()
 parser = argparse.ArgumentParser("Taskly")
 subparser = parser.add_subparsers(dest="command")
@@ -50,6 +52,16 @@ update.add_argument(
 delete = subparser.add_parser("delete", help="delete task")
 delete.add_argument("id", type=int, help="Id of task to be deleted")
 
+list_ = subparser.add_parser("list", help="list current to-do and in-progress.")
+group = list_.add_mutually_exclusive_group()
+group.add_argument("-p", "--priority", action="store_true", help="list in order of priority")
+group.add_argument("-a", "--all", action="store_true", help="list all tasks")
+group.add_argument("-d", "--done", action="store_true", help="list completed tasks")
+group.add_argument("-c", "--active", action="store_true", help="list active tasks")
+group.add_argument("-t", "--todo", action="store_true", help="list remaing todo's")
+group.add_argument("-q", "--deleted", action="store_true", help="list deleted tasks")
+
+
 args = parser.parse_args()
 
 if args.command == "add":
@@ -77,3 +89,18 @@ elif args.command == "delete":
         dt.delete_task(id_=args.id)
     except Exception as e:
         parser.error(str(e))
+elif args.command == "list":
+    if args.priority:
+        list_task_by_priority() # list deafualt task but based on priority ; default
+    elif args.all:
+        list_all_tasks() # list todo, in-progree, done ; all
+    elif args.done:
+        list_done_tasks() # list done ; all
+    elif args.active:
+        list_active_tasks() # list in-progress ; active
+    elif args.todo:
+        list_todo_tasks() # list todos ; default
+    elif args.deleted:
+        list_deleted_tasks() # list only deleted task ; del
+    else:
+        li.list_task() # list tasks which are in-progress or todo ; default
