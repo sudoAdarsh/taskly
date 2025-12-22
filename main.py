@@ -91,16 +91,16 @@ elif args.command == "delete":
         parser.error(str(e))
 elif args.command == "list":
     if args.priority:
-        list_task_by_priority() # list deafualt task but based on priority ; default
+        li.list_task(tasks_to_display="priority") # list deafualt task but based on priority ; default
     elif args.all:
-        list_all_tasks() # list todo, in-progree, done ; all
+        li.list_task(tasks_to_display="all", view="all") # list todo, in-progress, done 
     elif args.done:
-        list_done_tasks() # list done ; all
+        li.list_task(tasks_to_display="done", view="all") # list done 
     elif args.active:
-        list_active_tasks() # list in-progress ; active
+        li.list_task(tasks_to_display="active", view="active") # list in-progress 
     elif args.todo:
-        list_todo_tasks() # list todos ; default
+        li.list_task(tasks_to_display="todo") # list todos
     elif args.deleted:
-        list_deleted_tasks() # list only deleted task ; del
+        li.list_task(tasks_to_display="deleted", view="del") # list only deleted task 
     else:
-        li.list_task() # list tasks which are in-progress or todo ; default
+        li.list_task() # list tasks which are in-progress or todo 
