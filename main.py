@@ -35,6 +35,9 @@ start.add_argument("id", help="mention id of task to start", type=int)
 done = subparser.add_parser("done", help="changes status to done")
 done.add_argument("id", help="mention id of task to mark done", type=int)
 
+update = subparser.add_parser("update", help="Update task fields")
+update.add_argument("id", type=int, help="Id of task to be updated")
+
 args = parser.parse_args()
 
 if args.command == "add":
@@ -52,3 +55,9 @@ elif args.command == "done":
         dt.done_task(args.id)
     except Exception as e:
         parser.error(str(e))
+elif args.command == "update":
+    try:
+        dt.update_task(args.id)
+    except Exception as e:
+        print(str(e))
+        # parser.error(str(e))

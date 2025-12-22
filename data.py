@@ -119,3 +119,15 @@ class Data:
         else:
             raise ValueError(f"No active task with ID {id_}.")
         conn.close()
+    
+    # Update a task
+    def update_task(self, id_:int, desc=None, priority=None, due=None):
+        # Connect to database
+        conn = sqlite3.connect(DATA_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT description, priority, due FROM tasks WHERE id=?",(id_,))
+        details = cursor.fetchone()
+        if details is None:
+            conn.close()
+            raise ValueError("No details found")
+        print(details)
