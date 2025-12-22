@@ -125,9 +125,29 @@ class Data:
         # Connect to database
         conn = sqlite3.connect(DATA_FILE)
         cursor = conn.cursor()
-        cursor.execute("SELECT description, priority, due FROM tasks WHERE id=?",(id_,))
+
+        # Check current status
+        cursor.execute("SELECT status FROM tasks WHERE id=?",(id_,))
         details = cursor.fetchone()
-        if details is None:
+
+        # Check if task for that id exists or is already deleted
+        if details is None or details[0] =="deleted":
             conn.close()
-            raise ValueError("No details found")
-        print(details)
+            raise ValueError(f"No details found for Task id {id_}")
+        
+        # Update description if given
+        if desc is not None:
+            cursor.execute("UPDATE tasks SET description=? WHERE id=?", (desc,id_))
+            conn.commit()
+
+        # Update priority if given
+        if priority is not None:
+            cursor.execute("UPDATE tasks SET priority=? WHERE id=?", (priority,id_))
+            conn.commit()
+
+        # Update due if given
+        if due is not None:
+            due_date = parse_due_date(due).strftime("%d-%m-%Y %H:%M")
+            cursor.execute("UPDATE tasks SET due=? WHERE id=?", (due_date,id_))
+            conn.commit()
+        conn.close()

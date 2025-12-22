@@ -37,6 +37,15 @@ done.add_argument("id", help="mention id of task to mark done", type=int)
 
 update = subparser.add_parser("update", help="Update task fields")
 update.add_argument("id", type=int, help="Id of task to be updated")
+update.add_argument("--description", help="Task description")
+update.add_argument("--due", help="Setup a due date for the task")
+update.add_argument(
+    "--priority",
+    choices=range(1,5),
+    default=None,
+    type=int,
+    help="Task priority (1=Critical, 2=High, 3=Normal, 4=Low)"
+    )
 
 args = parser.parse_args()
 
@@ -57,7 +66,6 @@ elif args.command == "done":
         parser.error(str(e))
 elif args.command == "update":
     try:
-        dt.update_task(args.id)
+        dt.update_task(id_=args.id, desc=args.description, priority=args.priority, due=args.due)
     except Exception as e:
-        print(str(e))
-        # parser.error(str(e))
+        parser.error(str(e))
