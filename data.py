@@ -151,3 +151,33 @@ class Data:
             cursor.execute("UPDATE tasks SET due=? WHERE id=?", (due_date,id_))
             conn.commit()
         conn.close()
+
+    # Delete a task
+    def delete_task(self, id_):
+        # Connect to database
+        conn = sqlite3.connect(DATA_FILE)
+        cursor = conn.cursor()
+
+        # Check current status
+        cursor.execute("SELECT status from tasks WHERE id=?", (id_,))
+        status = cursor.fetchone()
+
+        # Check if task exists or is already deleted
+        if status is None or status[0] == "deleted":
+            conn.close()
+            raise ValueError(f"No task with id {id_} found.")
+        
+        # Ask for confirmation to delete task
+        confirm = input(f"Delete Task {id_}? [y/N]: ").strip().lower()
+        if not confirm.startswith("y"):
+            print("Cancelled")
+            conn.close()
+            return
+        
+        # Delete task and update deleted at time
+        deleted_at = datetime.now().strftime("%d-%m-%Y %H:%M")
+        new_status = "deleted"
+        cursor.execute("UPDATE tasks SET status=?, deleted_at=? WHERE id=?", (new_status, deleted_at, id_))
+        conn.commit()
+        conn.close()
+

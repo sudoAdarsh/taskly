@@ -47,6 +47,9 @@ update.add_argument(
     help="Task priority (1=Critical, 2=High, 3=Normal, 4=Low)"
     )
 
+delete = subparser.add_parser("delete", help="delete task")
+delete.add_argument("id", type=int, help="Id of task to be deleted")
+
 args = parser.parse_args()
 
 if args.command == "add":
@@ -67,5 +70,10 @@ elif args.command == "done":
 elif args.command == "update":
     try:
         dt.update_task(id_=args.id, desc=args.description, priority=args.priority, due=args.due)
+    except Exception as e:
+        parser.error(str(e))
+elif args.command == "delete":
+    try:
+        dt.delete_task(id_=args.id)
     except Exception as e:
         parser.error(str(e))
