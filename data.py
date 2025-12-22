@@ -23,16 +23,24 @@ class Data:
         )
         conection.commit()
         conection.close()
+
+    # Add a new task 
+
     def add_task(self, args):
-        print(parse_due_date(args.due))
         due_date = parse_due_date(args.due).strftime("%d-%m-%Y %H:%M")
-        created_at = datetime.now().strftime("%d-%m-%Y")
+        created_at = datetime.now().strftime("%d-%m-%Y %H:%M")
         conn = sqlite3.connect(DATA_FILE)
         cursor = conn.cursor()
         query = "INSERT INTO TASKS(description, priority, created_at, due) VALUES(?, ?, ?, ?)"
         cursor.execute(query, (args.description, args.priority, created_at, due_date))
-        new_id = cursor.lastrowid
-        a = cursor.execute("SELECT * FROM tasks")
+        # new_id = cursor.lastrowid
         conn.commit()
         conn.close()
-        return new_id
+        # return new_id
+
+    # Start a new task
+    def start_task(id_):
+        started_at = datetime.now().strftime("%d-%m-%Y %H:%M")
+        status = "in-progress"
+
+        query = "UPDATE"
