@@ -180,4 +180,3 @@ class Data:
         cursor.execute("UPDATE tasks SET status=?, deleted_at=? WHERE id=?", (new_status, deleted_at, id_))
         conn.commit()
         conn.close()
-
