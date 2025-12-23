@@ -55,6 +55,7 @@ delete.add_argument("id", type=int, help="Id of task to be deleted")
 list_ = subparser.add_parser("list", help="list current to-do and in-progress.")
 group = list_.add_mutually_exclusive_group()
 group.add_argument("-p", "--priority", action="store_true", help="list in order of priority")
+group.add_argument("-u", "--due", action="store_true", help="list in order of due nearing")
 group.add_argument("-a", "--all", action="store_true", help="list all tasks")
 group.add_argument("-d", "--done", action="store_true", help="list completed tasks")
 group.add_argument("-c", "--active", action="store_true", help="list active tasks")
@@ -63,6 +64,9 @@ group.add_argument("-q", "--deleted", action="store_true", help="list deleted ta
 
 
 args = parser.parse_args()
+
+if args.command is None:
+    li.list_task()
 
 if args.command == "add":
     try:
@@ -92,6 +96,8 @@ elif args.command == "delete":
 elif args.command == "list":
     if args.priority:
         li.list_task(tasks_to_display="priority") # list deafualt task but based on priority ; default
+    elif args.due:
+        li.list_task(tasks_to_display="due") # list deafualt task but based on due ; default
     elif args.all:
         li.list_task(tasks_to_display="all", view="all") # list todo, in-progress, done 
     elif args.done:

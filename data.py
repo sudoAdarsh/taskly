@@ -34,8 +34,8 @@ class Data:
         cursor = conn.cursor()
 
         # Format due date and creation date
-        due_date = parse_due_date(args.due).strftime("%d-%m-%Y %H:%M")
-        created_at = datetime.now().strftime("%d-%m-%Y %H:%M")
+        due_date = parse_due_date(args.due)#.strftime("%d-%m-%Y %H:%M")
+        created_at = datetime.now()#.strftime("%d-%m-%Y %H:%M")
 
         # Create querry to add task
         query = "INSERT INTO TASKS(description, priority, created_at, due) VALUES(?, ?, ?, ?)"
@@ -65,7 +65,7 @@ class Data:
         # if task is todo
         if current_status == "todo":
             # format start date and change status from todo to in-progress
-            started_at = datetime.now().strftime("%d-%m-%Y %H:%M")
+            started_at = datetime.now()#.strftime("%d-%m-%Y %H:%M")
             status = "in-progress"
             query = "UPDATE tasks SET started_at = ?, status = ? WHERE id = ?"
             val = (started_at, status, id_)
@@ -104,7 +104,7 @@ class Data:
         # if current status is todo or in-progress mark task is complete
         if current_status == "todo" or current_status == "in-progress":
             # format completed date and change status to done
-            completed_at = datetime.now().strftime("%d-%m-%Y %H:%M")
+            completed_at = datetime.now()#.strftime("%d-%m-%Y %H:%M")
             status = "done"
             query = "UPDATE tasks SET completed_at = ?, status = ? WHERE id = ?"
             val = (completed_at, status, id_)
@@ -175,7 +175,7 @@ class Data:
             return
         
         # Delete task and update deleted at time
-        deleted_at = datetime.now().strftime("%d-%m-%Y %H:%M")
+        deleted_at = datetime.now()#.strftime("%d-%m-%Y %H:%M")
         new_status = "deleted"
         cursor.execute("UPDATE tasks SET status=?, deleted_at=? WHERE id=?", (new_status, deleted_at, id_))
         conn.commit()
