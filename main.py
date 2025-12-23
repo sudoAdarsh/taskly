@@ -1,10 +1,6 @@
-# TODO get supporing fucntion for parsing date and sorting task
+# Author : Adarsh 
 
-# TODO get sqlite to handle storing data
-
-# TODO add class to manage CRUD operation (ADD, DELETE, EDIT, START, DONE)
-
-# TODO manage displaying , listing task
+# Enjoy this taskly CLI Application, I hope this helps you with managing your tasks
 
 import argparse
 from list_tasks import List
