@@ -34,17 +34,18 @@ class Data:
         cursor = conn.cursor()
 
         # Format due date and creation date
-        due_date = parse_due_date(args.due)#.strftime("%d-%m-%Y %H:%M")
-        created_at = datetime.now()#.strftime("%d-%m-%Y %H:%M")
+        due_date = parse_due_date(args.due)
+        created_at = datetime.now()
 
         # Create querry to add task
         query = "INSERT INTO TASKS(description, priority, created_at, due) VALUES(?, ?, ?, ?)"
         cursor.execute(query, (args.description, args.priority, created_at, due_date))
 
-        # new_id = cursor.lastrowid
+        id_ = cursor.lastrowid
+        print(f"New task with id {id_} created.")
         conn.commit()
         conn.close()
-        # return new_id
+        
 
     # Start a new task
     def start_task(self, id_):
@@ -65,13 +66,13 @@ class Data:
         # if task is todo
         if current_status == "todo":
             # format start date and change status from todo to in-progress
-            started_at = datetime.now()#.strftime("%d-%m-%Y %H:%M")
+            started_at = datetime.now()
             status = "in-progress"
             query = "UPDATE tasks SET started_at = ?, status = ? WHERE id = ?"
             val = (started_at, status, id_)
             cursor.execute(query, val)
             conn.commit()
-            print(f"Task {id_} has been started at {started_at}.")
+            print(f"Task {id_} started at {started_at.strftime("%d-%m-%Y %H:%M")}.")
         
         # if task is already in-progress
         elif current_status == "in-progress":
@@ -104,13 +105,13 @@ class Data:
         # if current status is todo or in-progress mark task is complete
         if current_status == "todo" or current_status == "in-progress":
             # format completed date and change status to done
-            completed_at = datetime.now()#.strftime("%d-%m-%Y %H:%M")
+            completed_at = datetime.now()
             status = "done"
             query = "UPDATE tasks SET completed_at = ?, status = ? WHERE id = ?"
             val = (completed_at, status, id_)
             cursor.execute(query, val)
             conn.commit()
-            print(f"Task {id_} has been marked done at {completed_at}.")
+            print(f"Task {id_} done at {completed_at.strftime("%d-%m-%Y %H:%M")}.")
         
         # if task is already completed
         elif current_status == "done":
@@ -134,22 +135,35 @@ class Data:
         if details is None or details[0] =="deleted":
             conn.close()
             raise ValueError(f"No details found for Task id {id_}")
+
+        # Check if task is already completed
+        if details[0] =="done":
+            conn.close()
+            raise ValueError(f"Task {id_} is already marked completed, you can't update it now.")
         
+        # Save changes that are made
+        changes = []
+
         # Update description if given
         if desc is not None:
             cursor.execute("UPDATE tasks SET description=? WHERE id=?", (desc,id_))
             conn.commit()
+            changes.append(f"Description: {desc}")
 
         # Update priority if given
         if priority is not None:
             cursor.execute("UPDATE tasks SET priority=? WHERE id=?", (priority,id_))
             conn.commit()
+            changes.append(f"Priority: {priority}")
 
         # Update due if given
         if due is not None:
-            due_date = parse_due_date(due).strftime("%d-%m-%Y %H:%M")
+            due_date = parse_due_date(due)
             cursor.execute("UPDATE tasks SET due=? WHERE id=?", (due_date,id_))
             conn.commit()
+            changes.append(f"Due: {due_date.strftime("%d-%m-%Y")}")
+        
+        print(f"Successfully updated Task {id_}: \n{', '.join(changes)}")
         conn.close()
 
     # Delete a task
@@ -178,5 +192,6 @@ class Data:
         deleted_at = datetime.now()#.strftime("%d-%m-%Y %H:%M")
         new_status = "deleted"
         cursor.execute("UPDATE tasks SET status=?, deleted_at=? WHERE id=?", (new_status, deleted_at, id_))
+        print(f"Task {id_} successfully deleted.")
         conn.commit()
         conn.close()
